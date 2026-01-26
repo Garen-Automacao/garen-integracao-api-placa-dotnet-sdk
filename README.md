@@ -1,7 +1,7 @@
 ﻿# Garen.Sdk (.NET Standard 2.0)
 
 Biblioteca oficial de integração .NET para as placas Garen.
-Desenvolvida para ser leve, resiliente (suporta quedas de rede) e compatível com .NET Framework 4.6.2+ (Legacy Windows Forms) e .NET 5/6/8.
+Desenvolvida para ser leve, resiliente e compatível com .NET Framework 4.6.2+ (Legacy Windows Forms) e .NET 5/6/8.
 
 ## 🚀 Instalação
 
