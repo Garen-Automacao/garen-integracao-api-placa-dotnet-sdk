@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <LangVersion>7.3</LangVersion>
+        <Version>1.0.0</Version>
+        <Authors>Lucas Gaspar</Authors>
+        <Description>Biblioteca oficial de integração.</Description>
+        <NoWarn>$(NoWarn);NU1904</NoWarn>
+        <RootNamespace>Garen.Sdk</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Refit" Version="6.3.2" />
+
+        <PackageReference Include="Refit.Newtonsoft.Json" Version="6.3.2" />
+
+        <PackageReference Include="Polly" Version="7.2.4" />
+
+        <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+    </ItemGroup>
+
+</Project>

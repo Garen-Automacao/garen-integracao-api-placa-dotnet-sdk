@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Garen.Sdk", "Garen.Sdk\Garen.Sdk.csproj", "{11196B9B-EC3E-457F-B172-37649D4D6E8C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Garen.Tester", "Garen.Tester\Garen.Tester.csproj", "{2E22E2B1-23A6-45E4-B692-A53C6D7558DA}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{11196B9B-EC3E-457F-B172-37649D4D6E8C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{11196B9B-EC3E-457F-B172-37649D4D6E8C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{11196B9B-EC3E-457F-B172-37649D4D6E8C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{11196B9B-EC3E-457F-B172-37649D4D6E8C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2E22E2B1-23A6-45E4-B692-A53C6D7558DA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2E22E2B1-23A6-45E4-B692-A53C6D7558DA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2E22E2B1-23A6-45E4-B692-A53C6D7558DA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2E22E2B1-23A6-45E4-B692-A53C6D7558DA}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
