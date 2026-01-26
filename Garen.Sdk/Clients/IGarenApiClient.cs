@@ -5,231 +5,293 @@ using System.IO;
 
 namespace Garen.Sdk.Clients
 {
+    /// <summary>
+    /// Interface de comunicação com a API REST da Placa Controladora Garen.
+    /// <para>Baseado no Manual da API v1.17.1.</para>
+    /// </summary>
     public interface IGarenApiClient
     {
         #region API - Comandos Básicos (Acionamento)
 
-        // Comando 20: Acionamento Remoto (Porta)
+        /// <summary>
+        /// Acionamento Remoto de Porta (Comando 20).
+        /// Abre instantaneamente uma porta ou aciona um relé.
+        /// </summary>
+        /// <param name="payload">
+        /// Configure 'Porta' (1 ou 2) e 'Tempo' (em ms). 
+        /// Use tempo=0 para usar a configuração padrão da placa.
+        /// </param>
         [Post("/api/comando/acionamento_remoto")]
         Task<GenericResponse> OpenDoorAsync([Body] RemoteDoorTrigger payload);
 
-        // Comando 19: Inverter Fluxo
+        /// <summary>
+        /// Inverter Fluxo (Comando 19).
+        /// Inverte o estado de "dentro/fora" de um usuário para controle de Intertravamento/Anti-Dupla.
+        /// </summary>
         [Post("/api/comando/inverter_fluxo")]
-        Task<GenericResponse> InvertFlowAsync([Body] object payload); // Criar DTO ReverseFlow se necessário
+        Task<GenericResponse> InvertFlowAsync([Body] ReverseFlow payload);
 
-        // Comando 59: Botão Virtual
+        /// <summary>
+        /// Acionar Botão Virtual (Comando 59).
+        /// Simula o pressionamento físico de uma botoeira de saída (REX).
+        /// </summary>
         [Post("/api/comando/botao_virtual")]
-        Task<GenericResponse> VirtualButtonAsync([Body] object payload); // DTO RemoteTrigger
+        Task<GenericResponse> VirtualButtonAsync([Body] RemoteTrigger payload);
 
         #endregion
 
         #region API - Usuários (CRUD)
 
-        // Comando 27: Criar Usuário
+        /// <summary>
+        /// Cadastrar Usuário (Comando 27).
+        /// </summary>
+        /// <param name="payload">
+        /// - 'validade': Timestamp Epoch (segundos).
+        /// - 'tipo_cadastro': 0=Visitante, 1=Morador/Fixo (usado apenas para relatório).
+        /// </param>
         [Post("/api/usuario")]
         Task<GenericResponse> CreateUserAsync([Body] UserRegisterModel payload);
 
-        // Comando 37: Atualizar Usuário
+        /// <summary>
+        /// Atualizar Usuário (Comando 37).
+        /// <para>Envie apenas os campos que deseja alterar. Campos nulos serão ignorados.</para>
+        /// </summary>
+        /// <param name="id">ID do usuário (Obrigatório se Hash não informado).</param>
+        /// <param name="hash">Hash do usuário (Opcional).</param>
         [Put("/api/usuario")]
-        Task<GenericResponse> UpdateUserAsync([Body] UserUpdateModel payload, [AliasAs("id")] string id,
-            [AliasAs("hash")] string hash);
+        Task<GenericResponse> UpdateUserAsync([Body] UserUpdateModel payload, [AliasAs("id")] string id = null, [AliasAs("hash")] string hash = null);
 
-        // Comando 2: Deletar Usuário
+        /// <summary>
+        /// Deletar Usuário (Comando 2).
+        /// Remove o usuário, suas credenciais, biometrias e regras.
+        /// </summary>
         [Delete("/api/usuario")]
         Task<GenericResponse> DeleteUserAsync([Body] UserIdModel payload);
 
-        // Obter Usuário Específico
+        /// <summary>
+        /// Obter Detalhes do Usuário (Comando 28).
+        /// Retorna todas as informações, incluindo cartões, senhas e grupos vinculados.
+        /// </summary>
         [Get("/api/usuario")]
-        Task<dynamic> GetUserAsync([AliasAs("id")] string id, [AliasAs("hash")] string hash);
+        Task<UserSelectModel> GetUserAsync([AliasAs("id")] string id = null, [AliasAs("hash")] string hash = null);
 
-        // Obter Todos Usuários
+        /// <summary>
+        /// Listar Todos os Usuários (Comando 3).
+        /// Lista simplificada (ID, Nome, Hash) de todos os cadastros.
+        /// </summary>
         [Get("/api/usuario/all")]
-        Task<dynamic> GetAllUsersAsync();
+        Task<UserSelectModelAll> GetAllUsersAsync();
 
-        // Comando 43: Quantidade de Usuários
+        /// <summary>
+        /// Obter Quantidade de Usuários (Comando 43).
+        /// </summary>
         [Get("/api/usuario/quantity")]
-        Task<dynamic> GetUserQuantityAsync();
-
-        #endregion
-
-        #region API - Grupos
-
-        // Comando 24: Criar Grupo
-        [Post("/api/grupo")]
-        Task<GenericResponse> CreateGroupAsync([Body] GroupModel payload);
-
-        // Comando 35: Atualizar Grupo
-        [Put("/api/grupo")]
-        Task<GenericResponse> UpdateGroupAsync([Body] GroupModel payload, [AliasAs("id")] string id);
-
-        // Comando 26: Deletar Grupo
-        [Delete("/api/grupo")]
-        Task<GenericResponse> DeleteGroupAsync([AliasAs("id")] string id);
-
-        // Comando 31: Obter Grupo
-        [Get("/api/grupo")]
-        Task<dynamic> GetGroupAsync([AliasAs("id")] string id);
-
-        // Comando 32: Listar todos grupos
-        [Get("/api/grupo/all")]
-        Task<GenericResponse> GetAllGroupsAsync();
-
-        // Comando 25: Associar Usuário a Grupo
-        [Post("/api/grupo/user")]
-        Task<GenericResponse> AssociateUserToGroupAsync([Body] GroupUserModel payload);
-
-        #endregion
-
-        #region API - Configurações (IP, Token, Date)
-
-        // Comando 61: Configurar IP
-        [Post("/api/configuracao/ip")]
-        Task<GenericResponse> SetIpConfigAsync([Body] IpConfigRule payload);
-
-        // Comando 62: Obter Config IP
-        [Get("/api/configuracao/ip")]
-        Task<IpResponse> GetIpConfigAsync();
-
-        // Comando 63: Configurar Token
-        [Post("/api/configuracao/token")]
-        Task<GenericResponse> SetTokenConfigAsync([Body] TokenConfigRule payload);
-
-        // Comando 39: Setar Data/Hora
-        [Post("/api/date")]
-        Task<GenericResponse> SetDateAsync([Body] object payload); // DTO DateModel
-
-        // Comando 36: Obter Data/Hora
-        [Get("/api/date")]
-        Task<dynamic> GetDateAsync();
-
-        #endregion
-
-        #region API - Regras de Tempo (Schedule)
-
-        // Comando 10: Criar Regra de Tempo
-        [Post("/api/tempo")]
-        Task<GenericResponse> CreateScheduleRuleAsync([Body] ScheduleRuleWithName payload);
-
-        // Comando 34: Atualizar Regra de Tempo
-        [Put("/api/tempo")]
-        Task<GenericResponse> UpdateScheduleRuleAsync([Body] ScheduleRule payload, [AliasAs("id")] string id,
-            [AliasAs("nome")] string nome);
-
-        // Comando 11: Deletar Regra de Tempo
-        [Delete("/api/tempo")]
-        Task<GenericResponse> DeleteScheduleRuleAsync([Body] object payload); // DTO RuleName
-
-        // Comando 12: Listar Regras de Tempo
-        [Get("/api/tempo")]
-        Task<GenericListResponse<ScheduleRuleWithName>> GetScheduleRulesAsync([AliasAs("gmt")] string gmt = "-3");
-
-        #endregion
-
-        #region API - PGM (Saídas Programáveis)
-
-        // Comando 65: Criar Regra PGM
-        [Post("/api/pgm")]
-        Task<GenericResponse> CreatePgmRuleAsync([Body] PgmRuleModel payload);
-
-        // Comando 64: Acionamento Remoto PGM
-        [Post("/api/pgm/acionamento_remoto")]
-        Task<GenericResponse> TriggerPgmAsync([Body] RemotePgmTrigger payload);
-
-        #endregion
-
-        #region API - Uploads e Arquivos (Multipart)
-
-        // Upload de Backup (Requer StreamPart do Refit)
-        [Multipart]
-        [Post("/api/backup")]
-        Task<GenericResponse> UploadBackupAsync([AliasAs("file")] StreamPart file);
-
-        // Upload de Imagem (Facial/Cadastro)
-        [Multipart]
-        [Post("/api/upload/bin")]
-        Task<GenericResponse> UploadImageBinAsync([AliasAs("file")] StreamPart file);
-
-        #endregion
-
-        #region API - Sistema e Versão
-
-        // Comando 94: Versão
-        [Get("/versao")]
-        Task<string> GetVersionAsync();
-
-        // Comando 95: Update Firmware
-        [Get("/versao/update")]
-        Task<GenericResponse> CheckUpdateAsync();
-
-        // Comando 99: Reset Total (CUIDADO!)
-        [Delete("/api/reset")]
-        Task<GenericResponse> FactoryResetAsync();
-
-        // MAC Address
-        [Get("/mac")]
-        Task<dynamic> GetMacAddressAsync();
+        Task<UserQuantitySelectModel> GetUserQuantityAsync();
 
         #endregion
 
         #region API - Regras de Acesso (Credenciais)
 
-        // Comando 4: Criar Acesso
+        /// <summary>
+        /// Cadastrar Credencial (Comando 4).
+        /// Vincula Cartão (RFID), Senha ou QR Code a um usuário existente.
+        /// </summary>
+        /// <param name="payload">
+        /// - Tipo: "Cartao", "Senha", "Qr".
+        /// - Codigo: O valor do cartão ou senha.
+        /// </param>
         [Post("/api/acesso")]
         Task<GenericResponse> CreateAccessAsync([Body] AccessModel payload);
 
-        // Comando 69: Atualizar Acesso
+        /// <summary>
+        /// Atualizar Credencial (Comando 69).
+        /// </summary>
         [Put("/api/acesso")]
-        Task<GenericResponse> UpdateAccessAsync([Body] AccessModel payload, [AliasAs("id")] string id);
+        Task<GenericResponse> UpdateAccessAsync([Body] AccessModel payload, [AliasAs("id")] string idAcesso = null);
 
-        // Comando 5: Deletar Acesso
+        /// <summary>
+        /// Deletar Credencial (Comando 5).
+        /// Remove um cartão/senha específico.
+        /// </summary>
         [Delete("/api/acesso")]
         Task<GenericResponse> DeleteAccessAsync([Body] DelAccessModel payload);
 
-        // Comando 6: Obter Acessos
+        /// <summary>
+        /// Listar Credenciais do Usuário (Comando 6).
+        /// </summary>
         [Get("/api/acesso")]
-        Task<AccessResponseModel> GetAccessAsync([AliasAs("id")] string idUsuario, [AliasAs("hash")] string hash);
+        Task<AccessResponseModel> GetAccessAsync([AliasAs("id")] string idUsuario = null, [AliasAs("hash")] string hash = null);
+
+        #endregion
+
+        #region API - Grupos
+
+        /// <summary>
+        /// Cadastrar Grupo (Comando 24).
+        /// Grupos definem em quais portas e horários o usuário pode entrar.
+        /// </summary>
+        [Post("/api/grupo")]
+        Task<GenericResponse> CreateGroupAsync([Body] GroupModel payload);
+
+        /// <summary>
+        /// Atualizar Grupo (Comando 35).
+        /// </summary>
+        [Put("/api/grupo")]
+        Task<GenericResponse> UpdateGroupAsync([Body] GroupUpdateModel payload, [AliasAs("id")] string id);
+
+        /// <summary>
+        /// Deletar Grupo (Comando 26).
+        /// </summary>
+        [Delete("/api/grupo")]
+        Task<GenericResponse> DeleteGroupAsync([AliasAs("id")] string id);
+
+        /// <summary>
+        /// Obter Detalhes do Grupo (Comando 31).
+        /// </summary>
+        [Get("/api/grupo")]
+        Task<dynamic> GetGroupAsync([AliasAs("id")] string id, [AliasAs("gmt")] string gmt = "-3");
+
+        /// <summary>
+        /// Listar Todos os Grupos (Comando 32).
+        /// </summary>
+        [Get("/api/grupo/all")]
+        Task<GenericResponse> GetAllGroupsAsync();
+
+        /// <summary>
+        /// Vincular Usuário a Grupo (Comando 25).
+        /// </summary>
+        [Post("/api/grupo/user")]
+        Task<GenericResponse> AssociateUserToGroupAsync([Body] GroupUserModel payload);
 
         #endregion
 
         #region API - Eventos (Logs)
 
-        // Comando 21: Buscar Eventos
+        /// <summary>
+        /// Buscar Eventos / Logs (Comando 21).
+        /// Retorna o histórico de acessos.
+        /// </summary>
+        /// <param name="id">ID do usuário.</param>
+        /// <param name="nome">Nome parcial do usuário.</param>
+        /// <param name="tipo">Filtro: "Cartao", "Senha", "FACIAL", "Botoeira", "Qr".</param>
+        /// <param name="status">Filtro: "Acesso", "Tentativa", "Desconhecido".</param>
+        /// <param name="horaInicial">Epoch timestamp inicio.</param>
+        /// <param name="horaFinal">Epoch timestamp fim.</param>
+        /// <param name="limite">Máximo de registros (Padrão 1000).</param>
         [Get("/api/eventos")]
-        Task<GenericResponse> GetEventsAsync(
+        Task<EventResponse> GetEventsAsync(
             [AliasAs("id")] string id = null,
+            [AliasAs("tipo_usuario")] string tipoUsuario = null,
+            [AliasAs("hash")] string hash = null,
             [AliasAs("nome")] string nome = null,
             [AliasAs("hora_inicial")] string horaInicial = null,
             [AliasAs("hora_final")] string horaFinal = null,
+            [AliasAs("limite")] string limite = null,
+            [AliasAs("status")] string status = null,
             [AliasAs("tipo")] string tipo = null);
 
-        // Comando 22: Deletar Eventos (Limpar Logs)
+        /// <summary>
+        /// Deletar Eventos (Comando 22).
+        /// Filtra e apaga logs da memória da placa.
+        /// </summary>
         [Delete("/api/eventos")]
         Task<GenericResponse> DeleteEventsAsync([Body] EventFilter payload);
 
-        // Comando 98: Configurar Servidor de Eventos HTTP (Monitoramento)
+        /// <summary>
+        /// Configurar Monitoramento HTTP (Comando 98).
+        /// A placa enviará POSTs para esta URL a cada novo evento.
+        /// </summary>
         [Post("/api/http-event-server")]
-        Task SetHttpEventServerAsync([Body] object payload); // Requer httpEventServerModel
+        Task SetHttpEventServerAsync([Body] httpEventServerModel payload);
 
         #endregion
 
-        #region API - Facial e LPR
+        #region API - Configurações Gerais
 
-        // Comando 96: Configuração Facial
+        [Post("/api/configuracao/ip")]
+        Task<GenericResponse> SetIpConfigAsync([Body] IpConfigRule payload);
+
+        [Get("/api/configuracao/ip")]
+        Task<IpResponse> GetIpConfigAsync();
+
+        [Post("/api/configuracao/token")]
+        Task<GenericResponse> SetTokenConfigAsync([Body] TokenConfigRule payload);
+
+        /// <summary>
+        /// Ajustar Relógio (Comando 39).
+        /// </summary>
+        [Post("/api/date")]
+        Task<GenericResponse> SetDateAsync([Body] DateModel payload);
+
+        [Get("/api/date")]
+        Task<DateResponse> GetDateAsync();
+
+        #endregion
+
+        #region API - Regras de Tempo (Horários)
+
+        [Post("/api/tempo")]
+        Task<GenericResponse> CreateScheduleRuleAsync([Body] ScheduleRuleWithName payload);
+
+        [Put("/api/tempo")]
+        Task<GenericResponse> UpdateScheduleRuleAsync([Body] ScheduleRule payload, [AliasAs("id")] string id, [AliasAs("nome")] string nome = null);
+
+        [Delete("/api/tempo")]
+        Task<GenericResponse> DeleteScheduleRuleAsync([Body] RuleName payload);
+
+        [Get("/api/tempo")]
+        Task<ScheduleRuleResponse> GetScheduleRulesAsync([AliasAs("gmt")] string gmt = "-3");
+
+        #endregion
+
+        #region API - PGM, Facial e LPR
+
+        [Post("/api/pgm")]
+        Task<GenericResponse> CreatePgmRuleAsync([Body] PgmRuleModel payload);
+
+        [Post("/api/pgm/acionamento_remoto")]
+        Task<GenericResponse> TriggerPgmAsync([Body] RemotePgmTrigger payload);
+
+        /// <summary>
+        /// Upload de Imagem (Backup ou Facial).
+        /// </summary>
+        [Multipart]
+        [Post("/api/upload/bin")]
+        Task<GenericResponse> UploadImageBinAsync([AliasAs("file")] StreamPart file);
+
         [Get("/api/facial/config")]
-        Task<GenericResponse> GetFacialConfigAsync();
+        Task<ConfigResponse> GetFacialConfigAsync();
 
-        [Post("/api/facial/{id}/config")]
-        Task<GenericResponse> SetFacialConfigAsync([AliasAs("id")] int id, [Body] ConfigFacialModel payload);
+        /// <summary>
+        /// Sincronizar Facial (Comando Sync).
+        /// </summary>
+        [Put("/api/facial/sync")]
+        Task<GenericResponse> SyncFacialAsync();
 
         [Get("/api/facial/{id}/last_image")]
         Task<GenericResponse> GetFacialLastImageAsync([AliasAs("id")] int id);
 
-        [Get("/api/facial/{id}/snapshot")]
-        Task<GenericResponse> GetFacialSnapshotAsync([AliasAs("id")] int id);
-
-        // LPR (Leitura de Placa)
         [Get("/api/lpr/{id}/last_plate")]
         Task<GenericResponse> GetLprLastPlateAsync([AliasAs("id")] int id);
+
+        #endregion
+
+        #region API - Sistema
+
+        /// <summary>
+        /// Versão do Firmware (Comando 94).
+        /// </summary>
+        [Get("/versao")]
+        Task<string> GetVersionAsync();
+
+        [Get("/versao/update")]
+        Task<GenericResponse> CheckUpdateAsync();
+
+        /// <summary>
+        /// Reset de Fábrica (Comando 99).
+        /// </summary>
+        [Delete("/api/reset")]
+        Task<GenericResponse> FactoryResetAsync();
 
         #endregion
     }
