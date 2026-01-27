@@ -480,5 +480,80 @@ namespace Garen.Sdk.Clients
         Task<GenericResponse> RestoreBackupAsync([AliasAs("file")] StreamPart file);
 
         #endregion
+        
+        #region API - PGM (Automação) - Novos Métodos
+
+        /// <summary>
+        /// Comando 66: Listar Regras de PGM.
+        /// </summary>
+        [Get("/api/pgm")]
+        Task<PgmRuleListResponse> GetPgmRulesAsync();
+
+        /// <summary>
+        /// Comando 67: Deletar Regra de PGM.
+        /// </summary>
+        [Delete("/api/pgm")]
+        Task<GenericResponse> DeletePgmRuleAsync([AliasAs("id")] int id);
+
+        /// <summary>
+        /// Comando 68: Atualizar Regra de PGM.
+        /// </summary>
+        [Put("/api/pgm")]
+        Task<GenericResponse> UpdatePgmRuleAsync([Body] PgmRuleModel payload, [AliasAs("id")] int id);
+
+        #endregion
+
+        #region API - Facial e LPR - Novos Métodos
+
+        /// <summary>
+        /// Obter Snapshot (Imagem em tempo real da câmera).
+        /// <para>Pode demorar um pouco pois acessa a câmera diretamente.</para>
+        /// </summary>
+        [Get("/api/facial/{id}/snapshot")]
+        Task<FacialImageResponse> GetFacialSnapshotAsync([AliasAs("id")] int id);
+
+        /// <summary>
+        /// Simular Leitura de Placa (Comando 41).
+        /// <para>Envia um evento de LPR como se a câmera tivesse lido.</para>
+        /// </summary>
+        /// <remarks>
+        /// O payload original é complexo (AlarmInfoPlate), mas o Python simplifica.
+        /// Este endpoint é mais usado para testes internos ou integração manual.
+        /// </remarks>
+        [Post("/api/lpr/{id}")]
+        Task<dynamic> SimulateLprEventAsync([AliasAs("id")] int id, [Body] object payload);
+
+        #endregion
+
+        #region API - Sistema e Diagnóstico - Novos Métodos
+
+        /// <summary>
+        /// Obter Endereço MAC da Placa.
+        /// </summary>
+        [Get("/mac")]
+        Task<dynamic> GetMacAddressAsync();
+
+        /// <summary>
+        /// Ping / Health Check.
+        /// <para>Retorna "42" se a API estiver online.</para>
+        /// </summary>
+        [Get("/resposta")]
+        Task<int> PingAsync();
+
+        /// <summary>
+        /// Comando 101: Reportar Erro (Logs).
+        /// <para>Envia logs internos por e-mail (funcionalidade de suporte).</para>
+        /// </summary>
+        [Get("/api/reportar_erro/{value}")]
+        Task<GenericResponse> ReportErrorAsync([AliasAs("value")] string value);
+
+        /// <summary>
+        /// Executar Verificador de Update (Script Python).
+        /// </summary>
+        [Multipart]
+        [Post("/api/backup/update_verifier")]
+        Task<GenericResponse> RunUpdateVerifierAsync([AliasAs("file")] StreamPart file);
+
+        #endregion
     }
 }

@@ -59,6 +59,10 @@ namespace Garen.Tester
 
                 Console.WriteLine("10- [FACIAL]   Última Foto Capturada");
                 Console.WriteLine("11- [LPR]      Última Placa Lida");
+                
+                Console.WriteLine("12- [PGM]      Listar Regras");
+                Console.WriteLine("13- [FACIAL]   Snapshot Ao Vivo");
+                Console.WriteLine("14- [SISTEMA]  Ping e MAC");
 
                 Console.WriteLine("0 - Sair");
                 Console.Write("> ");
@@ -417,6 +421,54 @@ namespace Garen.Tester
             }
 
             Console.ResetColor();
+        }
+        
+        private static async Task TesteListarPgm()
+        {
+            Console.WriteLine("--- Regras de PGM ---");
+            var resp = await GarenApiFactory.Client.GetPgmRulesAsync();
+            if (resp?.Detalhes != null) PrintModel(resp.Detalhes);
+            else Console.WriteLine("Nenhuma regra PGM encontrada.");
+        }
+
+        private static async Task TesteFacialSnapshot()
+        {
+            Console.WriteLine("--- Snapshot Facial (Ao Vivo) ---");
+            Console.Write("ID da Câmera (1-4): ");
+            if (!int.TryParse(Console.ReadLine(), out int id)) id = 1;
+
+            Console.WriteLine("Aguardando câmera...");
+            try 
+            {
+                var resp = await GarenApiFactory.Client.GetFacialSnapshotAsync(id);
+                if (!string.IsNullOrEmpty(resp?.ImageBase64))
+                {
+                    // Reusa a lógica de salvar imagem
+                    var base64Data = resp.ImageBase64.Contains(",") ? resp.ImageBase64.Split(',')[1] : resp.ImageBase64;
+                    byte[] bytes = Convert.FromBase64String(base64Data);
+                    string fileName = $"snapshot_{id}_{DateTime.Now:HHmmss}.jpg";
+                    File.WriteAllBytes(fileName, bytes);
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine($"SUCESSO: Snapshot salvo em '{fileName}'.");
+                }
+                else Console.WriteLine("Falha ao capturar imagem.");
+            }
+            catch (Exception ex) { Console.WriteLine($"Erro: {ex.Message}"); }
+            Console.ResetColor();
+        }
+
+        private static async Task TesteSistemaExtras()
+        {
+            Console.WriteLine("--- Diagnóstico ---");
+            try 
+            {
+                var ping = await GarenApiFactory.Client.PingAsync();
+                Console.WriteLine($"Ping API: {ping} (Esperado: 42)");
+
+                var mac = await GarenApiFactory.Client.GetMacAddressAsync();
+                Console.WriteLine($"MAC Address: {mac}");
+            }
+            catch (Exception ex) { Console.WriteLine($"Erro: {ex.Message}"); }
         }
     }
 }

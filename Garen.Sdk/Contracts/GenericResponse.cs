@@ -162,4 +162,18 @@ namespace Garen.Sdk.Contracts
         [JsonProperty("image")] 
         public string ImageBase64 { get; set; }
     }
+    
+    public class PgmRuleResponsesModel
+    {
+        [JsonProperty("id")] public int Id { get; set; }
+        [JsonProperty("portas")] public List<string> Portas { get; set; }
+        [JsonProperty("tempo_aberto")] public int TempoAberto { get; set; }
+    }
+
+    public class PgmRuleListResponse
+    {
+        [JsonProperty("status")] public string Status { get; set; }
+        [JsonProperty("codigo")] public int Codigo { get; set; }
+        [JsonProperty("detalhes")] public List<PgmRuleResponsesModel> Detalhes { get; set; }
+    }
 }
