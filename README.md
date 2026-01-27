@@ -29,7 +29,7 @@ A biblioteca gerencia a conexão HTTP para evitar exaustão de sockets. Iniciali
 using Garen.Sdk.Infrastructure;
 
 // Configure com o IP da placa e o Token
-GarenApiFactory.Initialize("http://192.168.0.100:5000", "SEU_TOKEN_AQUI");
+GarenApiFactory.Initialize("[http://192.168.0.100:80](http://192.168.0.100:80)", "SEU_TOKEN_AQUI");
 ```
 
 ### 2. Exemplo: Abrir Portão (Comando 20)
@@ -51,13 +51,15 @@ public async Task AbrirPortaoPrincipal()
         // O Polly gerencia tentativas automáticas em caso de falha de rede
         var resposta = await GarenApiFactory.Client.OpenDoorAsync(comando);
         
-        if (resposta.Status == "success" || resposta.Codigo == 200)
+        // Verifica se deu sucesso (Código 0 ou HTTP 200)
+        if (resposta.Codigo == GarenReturnCode.Sucesso)
         {
             Console.WriteLine("Comando aceito pela placa!");
         }
         else
         {
-            Console.WriteLine($"Erro na placa: {resposta.Status}");
+            // Exibe a descrição amigável do erro (ex: "Token inválido")
+            Console.WriteLine($"Erro na placa: {resposta.Descricao}");
         }
     }
     catch (Exception ex)
@@ -74,7 +76,7 @@ public async Task AbrirPortaoPrincipal()
 
 ```csharp
 var usuarios = await GarenApiFactory.Client.GetAllUsersAsync();
-// A resposta é dinâmica ou tipada conforme o contrato
+// A resposta é tipada (UserSelectModelAll)
 ```
 
 ---
@@ -93,6 +95,7 @@ Esta SDK implementa proteção contra falhas de infraestrutura:
 * **Contracts/**: DTOs (Data Transfer Objects) baseados no Swagger da Garen.
 * **Clients/**: Interface `IGarenApiClient` com o mapeamento das rotas REST.
 * **Infrastructure/**: `GarenApiFactory` contendo a configuração do `HttpClient` e políticas do Polly.
+
 ---
 
 ## 🧪 Como usar o Projeto de Teste (Garen.Tester)
@@ -105,7 +108,7 @@ Abra o arquivo `appsettings.json` no projeto **Garen.Tester** e insira o IP da s
 ```json
 {
   "GarenApi": {
-    "BaseUrl": "http://192.168.0.88:5000",
+    "BaseUrl": "[http://192.168.0.88:5000](http://192.168.0.88:5000)",
     "Token": "SEU_TOKEN_AQUI"
   }
 }
@@ -119,3 +122,28 @@ Defina o `Garen.Tester` como **Startup Project** e inicie o Debug. Um menu inter
 * **[USUÁRIOS]**: CRUD completo (Criar, Listar, Excluir usuários).
 * **[ACESSO]**: Gestão de credenciais (Cartão/Senha).
 * **[EVENTOS]**: Leitura de logs de acesso em tempo real.
+
+---
+
+## 📖 Tabela de Códigos de Retorno
+
+A propriedade `response.Codigo` retorna um Enum `GarenReturnCode`. Você pode usar a propriedade auxiliar `response.Descricao` para obter o texto amigável.
+
+| Código | Enum (C#) | Descrição |
+| :--- | :--- | :--- |
+| **0** | `Sucesso` | Operação realizada com sucesso. |
+| **1** | `RegraNomeDuplicado` | Já existe uma regra com este nome. |
+| **2** | `CamposIncompletos` | Campos do JSON incompletos ou nulos. |
+| **3** | `ComandoInvalido` | O comando solicitado não existe na API. |
+| **4** | `JsonInvalido` | Erro de sintaxe no JSON enviado. |
+| **5** | `SemConteudo` | Sem conteúdo no banco de dados (ex: busca vazia). |
+| **6** | `FalhaCadastroUsuario` | Falha interna ao tentar cadastrar usuário. |
+| **7** | `RegraPortaNaoEncontrada` | Regra de porta não cadastrada. |
+| **8** | `RegraTempoNaoEncontrada` | Regra de tempo (horário) não cadastrada. |
+| **9** | `TokenNaoInformado` | Authorization token não foi informado no Header. |
+| **10** | `GrupoPortaDuplicado` | Já existe um grupo vinculado a essa porta. |
+| **11** | `TokenInvalido` | O Token informado está incorreto. |
+| **12** | `CodigoAcessoDuplicado` | Já existe este código de acesso (Cartão/Senha) cadastrado. |
+| **13** | `FamiliaNaoEncontrada` | Configuração de família não encontrada. |
+| **14** | `SemVagasLivres` | Não existem vagas livres sobrando na família/grupo. |
+| **15** | `ExcessoVagasFamilia` | A família tentou usar mais vagas que o permitido. |

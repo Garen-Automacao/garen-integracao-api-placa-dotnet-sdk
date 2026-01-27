@@ -156,4 +156,10 @@ namespace Garen.Sdk.Contracts
         [JsonProperty("facialA")] public string FacialA { get; set; }
         [JsonProperty("facialB")] public string FacialB { get; set; }
     }
+    
+    public class FacialImageResponse
+    {
+        [JsonProperty("image")] 
+        public string ImageBase64 { get; set; }
+    }
 }

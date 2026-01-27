@@ -420,7 +420,7 @@ namespace Garen.Sdk.Clients
         /// Obter Última Imagem Capturada (Facial).
         /// </summary>
         [Get("/api/facial/{id}/last_image")]
-        Task<GenericResponse> GetFacialLastImageAsync([AliasAs("id")] int id);
+        Task<FacialImageResponse> GetFacialLastImageAsync([AliasAs("id")] int id);
 
         /// <summary>
         /// Obter Última Placa Lida (LPR).
