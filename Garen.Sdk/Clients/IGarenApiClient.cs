@@ -424,9 +424,10 @@ namespace Garen.Sdk.Clients
 
         /// <summary>
         /// Obter Última Placa Lida (LPR).
+        /// Retorna a string da placa (ex: "ABC1234") ou null.
         /// </summary>
         [Get("/api/lpr/{id}/last_plate")]
-        Task<GenericResponse> GetLprLastPlateAsync([AliasAs("id")] int id);
+        Task<string> GetLprLastPlateAsync([AliasAs("id")] int id);
 
         #endregion
 

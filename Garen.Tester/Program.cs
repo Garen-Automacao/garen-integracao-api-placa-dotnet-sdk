@@ -303,8 +303,27 @@ namespace Garen.Tester
             Console.Write("ID do LPR (1 a 4): ");
             if (!int.TryParse(Console.ReadLine(), out int id)) id = 1;
 
-            var resp = await GarenApiFactory.Client.GetLprLastPlateAsync(id);
-            PrintResultado(resp);
+            try 
+            {
+                // Agora retorna uma string direta
+                string placa = await GarenApiFactory.Client.GetLprLastPlateAsync(id);
+
+                if (!string.IsNullOrEmpty(placa))
+                {
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine($"SUCESSO: Placa lida: {placa}");
+                }
+                else
+                {
+                    Console.WriteLine("Nenhuma placa registrada para este ID (null).");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"ERRO: {ex.Message}");
+            }
+            Console.ResetColor();
         }
 
         // --- HELPERS DE REFLECTION ---
