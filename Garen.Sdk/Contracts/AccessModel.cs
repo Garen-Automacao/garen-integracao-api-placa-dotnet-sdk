@@ -79,9 +79,38 @@ namespace Garen.Sdk.Contracts
     
     public class EventResponseDetails
     {
-        [JsonProperty("date")] public string Date { get; set; }
-        [JsonProperty("epoch")] public int Epoch { get; set; }
-        // Outros campos de log que a placa retorna
+        // Mapeia o campo "data" do JSON (Epoch timestamp)
+        [JsonProperty("data")] 
+        public int TimestampEpoch { get; set; }
+
+        [JsonProperty("nome")] 
+        public string Nome { get; set; }
+
+        [JsonProperty("tipo")] 
+        public string Tipo { get; set; } // Ex: "Cartao"
+
+        [JsonProperty("status")] 
+        public string Status { get; set; } // Ex: "AntiPassBack"
+
+        [JsonProperty("id_usuario")] 
+        public int? IdUsuario { get; set; }
+
+        [JsonProperty("tipo_usuario")] 
+        public int? TipoUsuario { get; set; }
+
+        [JsonProperty("descricao")] 
+        public string DescricaoRaw { get; set; } // JSON em string
+
+        [JsonProperty("descricao_obj")] 
+        public EventDescriptionObject DetalhesHardware { get; set; }
+    }
+
+    public class EventDescriptionObject
+    {
+        [JsonProperty("door")] public string Door { get; set; }
+        [JsonProperty("code")] public string Code { get; set; }
+        [JsonProperty("type")] public string Type { get; set; }
+        [JsonProperty("mac")] public long? Mac { get; set; }
     }
 
     public class httpEventServerModel

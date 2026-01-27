@@ -93,3 +93,29 @@ Esta SDK implementa proteção contra falhas de infraestrutura:
 * **Contracts/**: DTOs (Data Transfer Objects) baseados no Swagger da Garen.
 * **Clients/**: Interface `IGarenApiClient` com o mapeamento das rotas REST.
 * **Infrastructure/**: `GarenApiFactory` contendo a configuração do `HttpClient` e políticas do Polly.
+---
+
+## 🧪 Como usar o Projeto de Teste (Garen.Tester)
+
+Esta solução inclui um projeto Console Application chamado `Garen.Tester`. Ele serve como **exemplo de implementação** e ferramenta de **diagnóstico** para validar a comunicação com a placa antes de iniciar a integração no seu sistema principal.
+
+### 1. Configuração
+Abra o arquivo `appsettings.json` no projeto **Garen.Tester** e insira o IP da sua placa e o Token (se houver):
+
+```json
+{
+  "GarenApi": {
+    "BaseUrl": "http://192.168.0.88:5000",
+    "Token": "SEU_TOKEN_AQUI"
+  }
+}
+```
+
+### 2. Executando
+Defina o `Garen.Tester` como **Startup Project** e inicie o Debug. Um menu interativo será exibido no console permitindo testar:
+
+* **[HARDWARE]**: Teste de acionamento de relés e portas.
+* **[SISTEMA]**: Validação de versão de firmware, IP e Data/Hora.
+* **[USUÁRIOS]**: CRUD completo (Criar, Listar, Excluir usuários).
+* **[ACESSO]**: Gestão de credenciais (Cartão/Senha).
+* **[EVENTOS]**: Leitura de logs de acesso em tempo real.

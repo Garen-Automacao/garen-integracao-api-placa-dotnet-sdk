@@ -1,12 +1,15 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq; // Necessário para .First() e .Any()
+using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using Garen.Sdk.Contracts;
 using Garen.Sdk.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
+using Refit;
 
 namespace Garen.Tester
 {
@@ -14,8 +17,8 @@ namespace Garen.Tester
     {
         static async Task Main(string[] args)
         {
-            Console.Title = "Garen SDK Tester v2.0 - Full Features";
-            Console.WriteLine("=== Garen SDK Tester v2.0 ===");
+            Console.Title = "Garen SDK Tester v3.0 - Master";
+            Console.WriteLine("=== Garen SDK Tester v3.0 ===");
 
             var builder = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
@@ -31,9 +34,9 @@ namespace Garen.Tester
                 return;
             }
 
-            Console.WriteLine($"Target: {baseUrl}");
+            Console.WriteLine($"Conectado em: {baseUrl}");
             GarenApiFactory.Initialize(baseUrl, token);
-            Console.WriteLine("Factory Inicializada.\n");
+            Console.WriteLine("SDK Pronta e Factory Inicializada.\n");
 
             while (true)
             {
@@ -43,13 +46,20 @@ namespace Garen.Tester
                 
                 Console.WriteLine("1 - [HARDWARE] Acionar Portão / Relé");
                 Console.WriteLine("2 - [SISTEMA]  Status (Versão, Data, IP)");
+                
                 Console.WriteLine("3 - [USUÁRIOS] Listar Todos");
                 Console.WriteLine("4 - [USUÁRIOS] Criar Usuário (Teste)");
                 Console.WriteLine("5 - [USUÁRIOS] Deletar Usuário");
-                Console.WriteLine("6 - [ACESSO]   Listar Cartões/Senhas de um Usuário");
+                
+                Console.WriteLine("6 - [ACESSO]   Listar Cartões/Senhas");
                 Console.WriteLine("7 - [ACESSO]   Cadastrar Cartão/Senha");
+                
                 Console.WriteLine("8 - [GRUPOS]   Listar Grupos");
-                Console.WriteLine("9 - [EVENTOS]  Ler Logs");
+                Console.WriteLine("9 - [EVENTOS]  Ler Logs (Últimos 5)");
+                
+                Console.WriteLine("10- [FACIAL]   Última Foto Capturada");
+                Console.WriteLine("11- [LPR]      Última Placa Lida");
+                
                 Console.WriteLine("0 - Sair");
                 Console.Write("> ");
 
@@ -65,10 +75,12 @@ namespace Garen.Tester
                         case "3": await TesteListarUsuarios(); break;
                         case "4": await TesteCriarUsuario(); break;
                         case "5": await TesteDeletarUsuario(); break;
-                        case "6": await TesteListarAcessos(); break; // Novo
-                        case "7": await TesteCadastrarAcesso(); break; // Novo
-                        case "8": await TesteListarGrupos(); break; // Novo
+                        case "6": await TesteListarAcessos(); break;
+                        case "7": await TesteCadastrarAcesso(); break;
+                        case "8": await TesteListarGrupos(); break;
                         case "9": await TesteLerEventos(); break;
+                        case "10": await TesteFacialLastImage(); break;
+                        case "11": await TesteLprLastPlate(); break;
                         case "0": return;
                         default: Console.WriteLine("Opção inválida."); break;
                     }
@@ -77,7 +89,12 @@ namespace Garen.Tester
                 {
                     Console.ForegroundColor = ConsoleColor.Yellow;
                     Console.WriteLine("\n[TIMEOUT] A placa não respondeu em 5 segundos.");
-                    Console.WriteLine("Verifique se ela está ligada e conectada na rede.");
+                    Console.ResetColor();
+                }
+                catch (ApiException apiEx)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine($"\n[ERRO API] {apiEx.StatusCode} - {apiEx.Content}");
                     Console.ResetColor();
                 }
                 catch (Exception ex)
@@ -87,7 +104,7 @@ namespace Garen.Tester
                     Console.ResetColor();
                 }
 
-                Console.WriteLine("\nPressione ENTER...");
+                Console.WriteLine("\nPressione ENTER para voltar...");
                 Console.ReadLine();
                 Console.Clear();
             }
@@ -108,13 +125,14 @@ namespace Garen.Tester
         private static async Task TesteSistema()
         {
             Console.WriteLine("--- Status do Sistema ---");
-            Console.WriteLine($"Versão: {await GarenApiFactory.Client.GetVersionAsync()}");
+            Console.WriteLine($"Versão Firmware: {await GarenApiFactory.Client.GetVersionAsync()}");
             
-            Console.WriteLine("\nConfiguração de IP:");
-            PrintJson(await GarenApiFactory.Client.GetIpConfigAsync());
+            Console.WriteLine("\n[Configuração de IP]");
+            PrintModel(await GarenApiFactory.Client.GetIpConfigAsync());
 
-            Console.WriteLine("\nData/Hora Interna:");
-            PrintJson(await GarenApiFactory.Client.GetDateAsync());
+            Console.WriteLine("\n[Data/Hora Interna]");
+            var dateResp = await GarenApiFactory.Client.GetDateAsync();
+            if (dateResp?.Detalhes != null) PrintModel(dateResp.Detalhes);
         }
 
         // --- 3. LISTAR USUÁRIOS ---
@@ -123,15 +141,14 @@ namespace Garen.Tester
             Console.WriteLine("--- Usuários Cadastrados ---");
             var resp = await GarenApiFactory.Client.GetAllUsersAsync();
             
-            if (resp.Detalhes != null)
+            if (resp?.Detalhes != null)
             {
                 Console.WriteLine($"Total encontrados: {resp.Detalhes.Count}");
-                // Mostra só os 5 primeiros para não poluir
-                PrintJson(resp.Detalhes.Take(5)); 
+                PrintModel(resp.Detalhes.Take(5)); // Mostra os 5 primeiros
             }
             else
             {
-                Console.WriteLine("Nenhum usuário encontrado ou erro na estrutura.");
+                Console.WriteLine("Nenhum usuário encontrado.");
             }
         }
 
@@ -145,14 +162,7 @@ namespace Garen.Tester
 
             var novoUsuario = new UserRegisterModel
             {
-                Nome = nome,
-                TipoCadastro = 1, 
-                Validade = 0, // 0 = sem validade (eterno)
-                Creditos = 0,
-                DataInicio = 0,
-                DataFim = 0,
-                Portas = new List<string> { "1", "2" }, // Acesso a ambas as portas
-                GrupoDeAcesso = new List<string> { "1" } // Grupo padrão
+                Nome = nome
             };
 
             Console.WriteLine("Enviando...");
@@ -170,27 +180,37 @@ namespace Garen.Tester
             }
         }
 
-        // --- 6. LISTAR ACESSOS (NOVO) ---
+        // --- 6. LISTAR ACESSOS ---
         private static async Task TesteListarAcessos()
         {
             Console.WriteLine("--- Listar Credenciais ---");
-            Console.Write("ID do Usuário: ");
+            Console.Write("ID do Usuário (Enter para buscar todos): ");
             var id = Console.ReadLine();
 
             var resp = await GarenApiFactory.Client.GetAccessAsync(idUsuario: id);
-            PrintJson(resp);
+            
+            if (resp?.Detalhes != null)
+            {
+                PrintModel(resp.Detalhes);
+            }
+            else
+            {
+                Console.WriteLine("Nenhuma credencial encontrada.");
+            }
         }
 
-        // --- 7. CADASTRAR ACESSO (NOVO) ---
+        // --- 7. CADASTRAR ACESSO ---
         private static async Task TesteCadastrarAcesso()
         {
-            Console.WriteLine("--- Cadastrar Credencial (Cartão/Senha) ---");
-            Console.Write("ID do Usuário dono da credencial: ");
+            Console.WriteLine("--- Cadastrar Credencial ---");
+            Console.Write("ID do Usuário: ");
             if (!int.TryParse(Console.ReadLine(), out int idUser)) return;
 
-            Console.WriteLine("Tipo: 1-Cartão (RFID), 2-Senha");
+            Console.WriteLine("Tipo: 1-Cartão (RFID), 2-Senha, 3-QR Code");
             var tipoInput = Console.ReadLine();
-            string tipo = tipoInput == "2" ? "Senha" : "Cartao";
+            string tipo = "Cartao";
+            if (tipoInput == "2") tipo = "Senha";
+            if (tipoInput == "3") tipo = "Qr";
 
             Console.Write($"Digite o código ({tipo}): ");
             var codigo = Console.ReadLine();
@@ -199,52 +219,140 @@ namespace Garen.Tester
             {
                 IdUsuario = idUser,
                 Tipo = tipo,
-                Codigo = codigo,
-                // Opcionais deixados como null/padrão
+                Codigo = codigo
             };
 
             PrintResultado(await GarenApiFactory.Client.CreateAccessAsync(payload));
         }
 
-        // --- 8. LISTAR GRUPOS (NOVO) ---
+        // --- 8. LISTAR GRUPOS ---
         private static async Task TesteListarGrupos()
         {
             Console.WriteLine("--- Grupos de Acesso ---");
+            // Nota: Se a GenericResponse no SDK não tiver a lista "Detalhes", isso mostrará apenas o Status.
             var resp = await GarenApiFactory.Client.GetAllGroupsAsync();
-            PrintJson(resp);
+            
+            // O PrintResultado mostra Status e Codigo.
+            PrintResultado(resp);
+            
+            // Se o retorno da API tiver dados extras no corpo, o ideal é usar dynamic ou um DTO específico no SDK.
+            // Para testar, vamos assumir que o GenericResponse mostra o sucesso da operação.
         }
 
         // --- 9. EVENTOS ---
         private static async Task TesteLerEventos()
         {
-            Console.WriteLine("--- Ler Logs (Eventos) ---");
-            // Exemplo de filtro: Trazer apenas os últimos 5
+            Console.WriteLine("--- Ler Logs (Eventos Recentes) ---");
             var resp = await GarenApiFactory.Client.GetEventsAsync(limite: "5");
-            PrintJson(resp);
+            
+            if (resp?.Detalhes != null)
+            {
+                PrintModel(resp.Detalhes);
+            }
+            else
+            {
+                Console.WriteLine("Nenhum evento encontrado.");
+            }
         }
 
-        // --- HELPERS ---
-        private static void PrintJson(object obj)
+        // --- 10. FACIAL (ÚLTIMA FOTO) ---
+        private static async Task TesteFacialLastImage()
+        {
+            Console.WriteLine("--- Última Foto Capturada ---");
+            Console.Write("ID do Facial (1 a 4): ");
+            if (!int.TryParse(Console.ReadLine(), out int id)) id = 1;
+
+            // Retorna GenericResponse, onde o campo pode estar numa propriedade dinâmica.
+            // Como mapeamos GenericResponse simples, ele vai mostrar se deu sucesso.
+            var resp = await GarenApiFactory.Client.GetFacialLastImageAsync(id);
+            PrintResultado(resp);
+        }
+
+        // --- 11. LPR (ÚLTIMA PLACA) ---
+        private static async Task TesteLprLastPlate()
+        {
+            Console.WriteLine("--- Última Placa Lida ---");
+            Console.Write("ID do LPR (1 a 4): ");
+            if (!int.TryParse(Console.ReadLine(), out int id)) id = 1;
+
+            var resp = await GarenApiFactory.Client.GetLprLastPlateAsync(id);
+            PrintResultado(resp);
+        }
+
+        // --- HELPERS DE REFLECTION ---
+        private static void PrintModel(object obj)
         {
             if (obj == null) { Console.WriteLine("(null)"); return; }
-            try {
-                Console.WriteLine(JsonConvert.SerializeObject(obj, Formatting.Indented));
-            } catch { Console.WriteLine(obj.ToString()); }
+
+            // Se for lista, itera e imprime separadamente
+            if (obj is IEnumerable list && !(obj is string))
+            {
+                int count = 0;
+                foreach (var item in list)
+                {
+                    Console.WriteLine($"\n--- Registro #{++count} ---");
+                    PrintSingleObject(item);
+                }
+                if (count == 0) Console.WriteLine("Lista vazia.");
+                return;
+            }
+
+            // Se for objeto único
+            PrintSingleObject(obj);
+        }
+
+        private static void PrintSingleObject(object obj)
+        {
+            if (obj == null) return;
+
+            foreach (PropertyInfo prop in obj.GetType().GetProperties())
+            {
+                var val = prop.GetValue(obj);
+                
+                // Formatação: Tratamento de Data/Epoch
+                if (prop.Name.ToLower().Contains("data") || prop.Name.ToLower().Contains("epoch"))
+                {
+                    if (val is int epoch && epoch > 0)
+                    {
+                        try {
+                            var date = DateTimeOffset.FromUnixTimeSeconds(epoch).ToLocalTime();
+                            val = $"{epoch} ({date:dd/MM HH:mm:ss})";
+                        } catch {}
+                    }
+                }
+
+                // Lógica de Impressão
+                // 1. Ignora objetos complexos aninhados (Listas internas, objetos de config) para não poluir
+                // 2. Aceita Primitivos, Strings, Enums, Decimals
+                bool isSimple = val == null || 
+                                val.GetType().IsPrimitive || 
+                                val.GetType().IsEnum || 
+                                val is string || 
+                                val is decimal;
+
+                if (isSimple)
+                {
+                    // Alinhamento bonito
+                    Console.WriteLine($"{prop.Name.PadRight(20)}: {val ?? "-"}");
+                }
+            }
         }
 
         private static void PrintResultado(GenericResponse resp)
         {
-            if (resp == null) { Console.WriteLine("Resposta vazia."); return; }
+            if (resp == null) { Console.WriteLine("Resposta vazia (null)."); return; }
 
-            if (resp.Status?.ToLower() == "success" || resp.Codigo == 200)
+            // Verifica Sucesso (Enum 0 ou Http 200)
+            if (resp.Status?.ToLower() == "sucesso" || resp.Codigo == GarenReturnCode.Sucesso || (int)resp.Codigo == 200)
             {
                 Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine($"SUCESSO: {resp.Status} (Cod {resp.Codigo})");
+                Console.WriteLine($"SUCESSO: {resp.Status} (Cod: {resp.Codigo})");
             }
             else
             {
                 Console.ForegroundColor = ConsoleColor.Magenta;
-                Console.WriteLine($"FALHA: {resp.Status} (Cod {resp.Codigo})");
+                // Exibe a descrição amigável do erro que criamos no GenericResponse
+                Console.WriteLine($"FALHA: {resp.Descricao} (Status: {resp.Status}, Cod: {resp.Codigo})");
             }
             Console.ResetColor();
         }
