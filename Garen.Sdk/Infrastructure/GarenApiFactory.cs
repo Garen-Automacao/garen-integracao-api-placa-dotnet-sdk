@@ -24,7 +24,7 @@ namespace Garen.Sdk.Infrastructure
             {
                 if (_instance != null) return;
 
-                // 1. Configuração do Polly (Circuit Breaker)
+                // 1. Configure Polly Circuit Breaker
                 _circuitBreakerPolicy = Policy
                     .HandleResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode)
                     .Or<HttpRequestException>()
@@ -40,32 +40,28 @@ namespace Garen.Sdk.Infrastructure
                         onReset: () => System.Diagnostics.Debug.WriteLine("Circuit Reset!")
                     );
 
-                // 2. Configuração do HttpClient
+                // 2. Configure HttpClient
                 var httpClient = new HttpClient(new ApiHandler(_circuitBreakerPolicy))
                 {
                     BaseAddress = new Uri(baseUrl),
                     Timeout = TimeSpan.FromSeconds(5)
                 };
                 
-                // Limpa cabeçalhos anteriores por segurança
+                // Clear headers and add raw token
                 httpClient.DefaultRequestHeaders.Authorization = null;
-                // Adiciona o token diretamente (ex: "seutoken123" em vez de "Bearer seutoken123")
                 httpClient.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", token);
-                // -----------------------------------------
 
-                // 3. CONFIGURAÇÃO GLOBAL DO JSON  -----------------------
+                // 3. Global JSON configuration for Refit 5.2.4
                 var jsonSettings = new JsonSerializerSettings
                 {
-                    // Ignora propriedades nulas na serialização (Envio)
-                    // Se você mandar um objeto com Nome="Teste" e Id=null, o JSON vai apenas {"nome": "Teste"}
                     NullValueHandling = NullValueHandling.Ignore,
-
-                    // Ignora campos extras que a API retornar e você não mapeou (Evita erros futuros)
                     MissingMemberHandling = MissingMemberHandling.Ignore
                 };
 
-                var refitSettings = new RefitSettings(new NewtonsoftJsonContentSerializer(jsonSettings));
-                // ------------------------------------------------------------------------
+                var refitSettings = new RefitSettings
+                {
+                    ContentSerializer = new JsonContentSerializer(jsonSettings)
+                };
 
                 _instance = RestService.For<IGarenApiClient>(httpClient, refitSettings);
             }
